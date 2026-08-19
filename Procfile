@@ -1,5 +1,1 @@
-__pycache__/
-*.pyc
-local.db
-.env
-venv/
+web: gunicorn app:app
