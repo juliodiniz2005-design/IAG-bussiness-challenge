@@ -1,0 +1,3 @@
+local.db
+__pycache__/
+*.pyc

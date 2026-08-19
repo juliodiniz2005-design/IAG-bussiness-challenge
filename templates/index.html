@@ -391,9 +391,10 @@
   </div>
 </div>
 
-<script src="/static/images.js"></script>
 <script>
   let IMOVEIS=[], PLANOS=[], CURRENT=null, PLANO_SEL=null;
+
+  function aptImg(key){ return key ? `/static/fotos/${key}.jpg` : ''; }
 
   function fmt(n){return 'R$ '+Number(n).toLocaleString('pt-BR',{minimumFractionDigits:2,maximumFractionDigits:2});}
   function fmtInt(n){return 'R$ '+Number(n).toLocaleString('pt-BR');}

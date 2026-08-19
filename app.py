@@ -182,7 +182,7 @@ def seed():
                                  "cozinha planejada e suíte com armários. Prédio com portaria 24h.",
                        badges="Exclusivo,Visualizado",
                        amenidades="Portaria 24h,Elevador,Aceita pet,Varanda,Salão de festas,Academia",
-                       galeria="apt-living-01,apt-bedroom-02,apt-kitchen-03"),
+                       galeria="im1_4,im1_1,im1_3,im1_2"),
                 Imovel(titulo="Kitnet mobiliada com 1 quarto e academia no condomínio",
                        endereco="Rua Otávio Tarquínio de Sousa", bairro="Brooklin Novo",
                        aluguel=Decimal("3200"), condominio=Decimal("520"), iptu=Decimal("173"), seguro_incendio=Decimal("22"),
@@ -192,7 +192,7 @@ def seed():
                                  "lavanderia e portaria 24h. A poucos passos da Av. Berrini.",
                        badges="Exclusivo,Anúncio novo",
                        amenidades="Mobiliada,Academia,Portaria 24h,Ar-condicionado,Varanda,Lavanderia,Elevador,Aceita pet",
-                       galeria="apt-bedroom-02,apt-living-05,apt-kitchen-06,apt-bath-07,apt-view-08"),
+                       galeria="im5_1,im5_2,im5_3,im5_4"),
                 Imovel(titulo="Kitnet mobiliada com 1 quarto e academia no condomínio",
                        endereco="Rua Serra de Japi", bairro="Vila Azevedo",
                        aluguel=Decimal("3500"), condominio=Decimal("450"), iptu=Decimal("170"), seguro_incendio=Decimal("24"),
@@ -201,7 +201,7 @@ def seed():
                                  "Condomínio com academia e lavanderia compartilhada.",
                        badges="Anúncio novo",
                        amenidades="Mobiliada,Academia,Lavanderia,Elevador,Próximo ao metrô",
-                       galeria="apt-kitchen-03,apt-living-01,apt-loft-04"),
+                       galeria="im4_1,im4_2,im4_3,im4_4"),
                 Imovel(titulo="Apartamento amplo com 3 quartos e varanda gourmet",
                        endereco="Rua Vergueiro, 3000", bairro="Vila Mariana",
                        aluguel=Decimal("5400"), condominio=Decimal("1200"), iptu=Decimal("380"), seguro_incendio=Decimal("35"),
@@ -210,7 +210,17 @@ def seed():
                                  "3 dormitórios e 2 vagas. Excelente localização perto do metrô.",
                        badges="Exclusivo",
                        amenidades="Varanda gourmet,Portaria 24h,Elevador,Aceita pet,Playground,Piscina",
-                       galeria="apt-loft-04,apt-bedroom-02,apt-kitchen-06"),
+                       galeria="im2_2,im2_3,im2_4,im2_1"),
+                Imovel(titulo="Apartamento vazio com 1 quarto, pronto para decorar",
+                       endereco="Rua Cardeal Arcoverde, 850", bairro="Pinheiros",
+                       aluguel=Decimal("2400"), condominio=Decimal("480"), iptu=Decimal("140"), seguro_incendio=Decimal("18"),
+                       area=42, quartos=1, vagas=0, mobiliado=0,
+                       descricao="Apartamento simples e bem cuidado em Pinheiros, sem mobília, "
+                                 "pronto para você decorar do seu jeito. Condomínio com playground "
+                                 "e área de bicicletário.",
+                       badges="Anúncio novo",
+                       amenidades="Playground,Portaria 24h,Elevador,Bicicletário",
+                       galeria="im3_1,im3_2,im3_4,im3_3"),
             ])
         db.commit()
     finally:
@@ -266,7 +276,13 @@ def health():
 
 @app.route("/")
 def index():
-    return render_template("index.html")
+    resp = render_template("index.html")
+    from flask import make_response
+    resp = make_response(resp)
+    resp.headers['Cache-Control'] = 'no-cache, no-store, must-revalidate, max-age=0'
+    resp.headers['Pragma'] = 'no-cache'
+    resp.headers['Expires'] = '0'
+    return resp
 
 
 @app.route("/api/imoveis")
