@@ -37,7 +37,9 @@
   .device{position:relative;width:100%;max-width:400px;aspect-ratio:393/852;flex-shrink:0}
   @media(max-width:459px){
     body{background:var(--bg)}
-    .device{max-width:100%;width:100%;height:100vh;aspect-ratio:auto}
+    /* dvh acompanha a barra do navegador que aparece e some ao rolar; sem
+       isso a barra de baixo do app fica escondida atras dela no iOS. */
+    .device{max-width:100%;width:100%;height:100vh;height:100dvh;aspect-ratio:auto}
   }
   .device .rail{position:absolute;inset:0;background:linear-gradient(145deg,#3a3a40,#111114 45%,#2c2c31 55%,#0c0c0f);border-radius:58px;padding:5px;box-shadow:0 40px 80px rgba(0,0,0,.55),0 8px 24px rgba(0,0,0,.4)}
   .device .bezel{position:absolute;inset:5px;background:#000;border-radius:53px;padding:11px}
@@ -292,6 +294,19 @@
   .cmp td small,.cmp th small{display:block;font-family:'Inter';font-weight:500;font-size:10px;color:var(--ink-2);margin-top:3px;white-space:normal;text-transform:none;letter-spacing:0}
   .plan .indeniz{font-size:11.5px;color:var(--qa-blue-dark);font-weight:700;margin-top:7px}
   .plan.sel .indeniz{color:var(--qa-blue-dark)}
+
+  /* ===== NO CELULAR, SEM MOLDURA SIMULADA ===== */
+  /* O aparelho ja tem hora, sinal, bateria e indicador proprios: repetir isso
+     na tela so rouba espaco e denuncia que e uma maquete. A moldura fica so
+     no desktop, onde ela serve para demonstrar o app. */
+  @media(max-width:459px){
+    .island,.statusbar,.home-ind{display:none}
+    .phone{padding-top:env(safe-area-inset-top,0px)}
+    .bottombar{padding-bottom:calc(12px + env(safe-area-inset-bottom,0px))}
+    .bb-secure{padding-bottom:calc(10px + env(safe-area-inset-bottom,0px))}
+    .folha .corpo{padding-bottom:calc(26px + env(safe-area-inset-bottom,0px))}
+    .scroll{padding-bottom:calc(96px + env(safe-area-inset-bottom,0px))}
+  }
 
   .view{display:none}
   .view.active{display:block;animation:fade .28s}
