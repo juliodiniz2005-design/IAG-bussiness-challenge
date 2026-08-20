@@ -227,9 +227,56 @@ def seed():
         db.close()
 
 
+# Bairro -> fotos reais em static/fotos/. Fonte da verdade para bancos que já
+# existiam antes das fotos serem adicionadas ao projeto.
+GALERIAS_REAIS = [
+    ("Higienópolis", "im1_4,im1_1,im1_3,im1_2"),
+    ("Brooklin Novo", "im5_1,im5_2,im5_3,im5_4"),
+    ("Vila Azevedo", "im4_1,im4_2,im4_3,im4_4"),
+    ("Vila Mariana", "im2_2,im2_3,im2_4,im2_1"),
+    ("Pinheiros", "im3_1,im3_2,im3_4,im3_3"),
+]
+
+
+def reconcilia_fotos():
+    """Bancos criados antes das fotos reais guardam chaves 'apt-*' que não
+    existem mais, e o seed() não os reescreve porque só roda com a tabela
+    vazia. Aqui corrigimos a galeria dos imóveis já gravados e criamos o
+    imóvel de Pinheiros caso ele ainda não exista."""
+    db = SessionLocal()
+    try:
+        for bairro, galeria in GALERIAS_REAIS:
+            imovel = db.query(Imovel).filter(Imovel.bairro == bairro).first()
+            if imovel is None:
+                continue
+            if imovel.galeria != galeria:
+                log.info("Atualizando galeria de %s: %s -> %s",
+                         bairro, imovel.galeria, galeria)
+                imovel.galeria = galeria
+
+        if db.query(Imovel).filter(Imovel.bairro == "Pinheiros").first() is None:
+            log.info("Criando imóvel de Pinheiros (ausente neste banco).")
+            db.add(Imovel(
+                titulo="Apartamento vazio com 1 quarto, pronto para decorar",
+                endereco="Rua Cardeal Arcoverde, 850", bairro="Pinheiros",
+                aluguel=Decimal("2400"), condominio=Decimal("480"),
+                iptu=Decimal("140"), seguro_incendio=Decimal("18"),
+                area=42, quartos=1, vagas=0, mobiliado=0,
+                descricao="Apartamento simples e bem cuidado em Pinheiros, sem mobília, "
+                          "pronto para você decorar do seu jeito. Condomínio com playground "
+                          "e área de bicicletário.",
+                badges="Anúncio novo",
+                amenidades="Playground,Portaria 24h,Elevador,Bicicletário",
+                galeria="im3_1,im3_2,im3_4,im3_3"))
+        db.commit()
+    finally:
+        db.close()
+
+
 def init_db():
     Base.metadata.create_all(engine)
     seed()
+    reconcilia_fotos()
 
 
 # ----------------------------------------------------------------------------
