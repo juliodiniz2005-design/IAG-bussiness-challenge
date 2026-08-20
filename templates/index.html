@@ -295,6 +295,24 @@
   .plan .indeniz{font-size:11.5px;color:var(--qa-blue-dark);font-weight:700;margin-top:7px}
   .plan.sel .indeniz{color:var(--qa-blue-dark)}
 
+  /* ===== CONFIRMACAO ===== */
+  .ok-hero{text-align:center;padding:36px 26px 6px}
+  .ok-mark{width:74px;height:74px;border-radius:50%;background:#e6f4ec;color:var(--ok);display:grid;place-items:center;margin:0 auto 18px;font-size:36px;font-weight:700;animation:pop .45s cubic-bezier(.2,.9,.3,1.35)}
+  @keyframes pop{from{transform:scale(.4);opacity:0}to{transform:none;opacity:1}}
+  .ok-hero h1{font-size:23px;margin-bottom:9px;letter-spacing:-.02em}
+  .ok-hero p{font-size:14.5px;color:var(--ink-2);line-height:1.55}
+  .protocolo{display:inline-block;margin-top:16px;background:var(--chip);border-radius:999px;padding:7px 15px;font-size:12.5px;font-weight:600;color:var(--ink-2);font-family:'Manrope'}
+  .ok-pru{background:var(--qa-blue-soft);border-radius:14px;padding:15px;margin:0 18px 16px;display:flex;gap:12px;align-items:flex-start}
+  .ok-pru .ico{font-size:21px;line-height:1.2}
+  .ok-pru b{font-size:13.5px;display:block}
+  .ok-pru p{font-size:12.5px;color:var(--ink-2);margin-top:3px;line-height:1.5}
+  .passos{list-style:none;counter-reset:p;margin-top:6px}
+  .passos li{counter-increment:p;display:flex;gap:12px;padding:12px 0;border-bottom:1px solid var(--line)}
+  .passos li:last-child{border-bottom:none;padding-bottom:0}
+  .passos li:before{content:counter(p);width:24px;height:24px;border-radius:50%;background:var(--qa-blue-soft);color:var(--qa-blue-dark);font-family:'Manrope';font-size:12px;font-weight:800;display:grid;place-items:center;flex-shrink:0}
+  .passos li b{font-size:13.5px;display:block;line-height:1.35}
+  .passos li span{font-size:12.5px;color:var(--ink-2);line-height:1.5;display:block;margin-top:3px}
+
   /* ===== NO CELULAR, SEM MOLDURA SIMULADA ===== */
   /* O aparelho ja tem hora, sinal, bateria e indicador proprios: repetir isso
      na tela so rouba espaco e denuncia que e uma maquete. A moldura fica so
@@ -440,6 +458,48 @@
             </div>
           </section>
 
+          <!-- CONFIRMACAO -->
+          <section id="sucesso" class="view">
+            <div class="apphead">
+              <div class="qa-logo" onclick="go('home')"><span class="qa-mark"></span><span class="qa-word">QuintoAndar</span></div>
+            </div>
+            <div class="steps">
+              <div class="step done"><div class="bar"></div><small>1 · Dados</small></div>
+              <div class="step done"><div class="bar"></div><small>2 · Proteção</small></div>
+              <div class="step done"><div class="bar"></div><small>3 · Enviada</small></div>
+            </div>
+            <div class="ok-hero">
+              <div class="ok-mark">✓</div>
+              <h1>Proposta enviada!</h1>
+              <p id="okSub"></p>
+              <span class="protocolo" id="okProtocolo"></span>
+            </div>
+
+            <div class="summary" style="margin-top:20px">
+              <div class="prop"><img id="okImg"><div><b id="okTitulo"></b><span id="okEnd"></span></div></div>
+              <div class="lines">
+                <div class="l"><span>Aluguel + encargos</span><b id="okAluguel"></b></div>
+                <div class="l ins" id="okLinhaSeguro"><span>🛡️ Proteção do inquilino</span><b id="okSeguro"></b></div>
+                <div class="l total"><span>Total mensal</span><b id="okTotal"></b></div>
+              </div>
+            </div>
+
+            <div class="ok-pru" id="okPru">
+              <div class="ico">🛡️</div>
+              <div><b id="okPruTitulo"></b><p id="okPruTexto"></p></div>
+            </div>
+
+            <div class="panel">
+              <h2>Próximos passos</h2>
+              <p class="hint">Avisamos você por e-mail a cada etapa.</p>
+              <ol class="passos">
+                <li><div><b>Resposta do proprietário</b><span>Ele tem até 24h para aceitar sua proposta.</span></div></li>
+                <li><div><b>Análise de crédito</b><span>Feita pelo QuintoAndar, sem fiador e sem depósito.</span></div></li>
+                <li><div><b>Assinatura digital</b><span>Contrato assinado pelo app e chaves liberadas.</span></div></li>
+              </ol>
+            </div>
+          </section>
+
         </div><!-- /scroll -->
 
         <div class="bottombar" id="bb-home">
@@ -453,6 +513,9 @@
         <div class="bottombar" id="bb-proposal" style="display:none">
           <div class="price-mini"><b id="bbTotal">—</b><span>/mês total</span></div>
           <button class="btn btn-primary" onclick="enviar()">Enviar proposta</button>
+        </div>
+        <div class="bottombar" id="bb-sucesso" style="display:none">
+          <button class="btn btn-ghost" onclick="go('home')">Ver outros imóveis</button>
         </div>
 
         <!-- Detalhes da proteção. Sobe sobre a propria proposta: nao troca de
@@ -736,7 +799,7 @@
     document.getElementById('bbTotal').textContent=fmt(total);
   }
 
-  const bars={home:'bb-home',detail:'bb-detail',proposal:'bb-proposal'};
+  const bars={home:'bb-home',detail:'bb-detail',proposal:'bb-proposal',sucesso:'bb-sucesso'};
   function go(id){
     if(id==='proposal') refreshSummary();
     document.querySelectorAll('.view').forEach(v=>v.classList.remove('active'));
@@ -757,13 +820,51 @@
       imovel_id:CURRENT.id,
       plano_id:(PLANO_SEL && Number(PLANO_SEL.preco)>0)?PLANO_SEL.id:null
     };
-    const t=document.getElementById('toast');
+    const btn=document.querySelector('#bb-proposal .btn');
+    btn.disabled=true; btn.textContent='Enviando...';
     try{
       const res=await (await fetch('/api/propostas',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(payload)})).json();
-      t.innerHTML = payload.plano_id ? '✅ Proposta gravada com proteção do inquilino Prudential! (#'+res.id+')' : '✅ Proposta gravada no banco! (#'+res.id+')';
-    }catch(e){ t.innerHTML='⚠️ Erro ao enviar proposta'; }
-    t.classList.add('show');
-    setTimeout(()=>t.classList.remove('show'),3600);
+      if(!res.id) throw new Error('resposta sem id');
+      mostraSucesso(res, payload);
+    }catch(e){
+      // Erro nao pode virar tela de sucesso: o cliente fica onde esta e tenta de novo.
+      const t=document.getElementById('toast');
+      t.innerHTML='⚠️ Não conseguimos enviar. Tente novamente.';
+      t.classList.add('show');
+      setTimeout(()=>t.classList.remove('show'),3600);
+    }
+    btn.disabled=false; btn.textContent='Enviar proposta';
+  }
+
+  function mostraSucesso(res, payload){
+    const p=CURRENT, seg=(PLANO_SEL && Number(PLANO_SEL.preco))||0;
+
+    document.getElementById('okSub').textContent =
+      `Enviamos sua proposta ao proprietário de ${p.bairro}. `
+      + `Você recebe a resposta em ${payload.email}.`;
+    document.getElementById('okProtocolo').textContent = `Protocolo #${res.id}`;
+
+    document.getElementById('okImg').src = aptImg(p.galeria[0]);
+    document.getElementById('okTitulo').textContent =
+      p.titulo.length>34 ? p.titulo.slice(0,34)+'…' : p.titulo;
+    document.getElementById('okEnd').textContent = p.endereco;
+    document.getElementById('okAluguel').textContent = fmt(p.total);
+    document.getElementById('okTotal').textContent = fmt(p.total+seg);
+
+    document.getElementById('okLinhaSeguro').style.display = seg>0 ? 'flex' : 'none';
+    document.getElementById('okSeguro').textContent = fmt(seg);
+
+    const bloco=document.getElementById('okPru');
+    bloco.style.display = seg>0 ? 'flex' : 'none';
+    if(seg>0){
+      const teto=Math.max(...PLANO_SEL.coberturas.map(c=>c.valor));
+      document.getElementById('okPruTitulo').textContent =
+        `${PLANO_SEL.nome} ativada com a Prudential`;
+      document.getElementById('okPruTexto').textContent =
+        `Cobertura de até ${fmtInt(teto)} em indenizações, cobrada na mesma `
+        + `fatura do aluguel. Vale a partir da assinatura do contrato.`;
+    }
+    go('sucesso');
   }
 
   boot();
