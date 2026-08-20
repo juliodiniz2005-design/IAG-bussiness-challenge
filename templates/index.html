@@ -612,11 +612,15 @@
   function renderPlanos(){
     const planos = planosDoImovel();
     const el=document.getElementById('planos');
+    // Comeca sempre sem protecao: contratar e uma escolha ativa do cliente,
+    // nunca algo que ele leva por nao ter desmarcado.
+    const semProtecao = planos.findIndex(p=>!p.coberturas.length);
+    const padrao = semProtecao >= 0 ? semProtecao : 0;
     el.innerHTML = planos.map((pl,idx)=>{
       const teto = pl.coberturas.length ? Math.max(...pl.coberturas.map(c=>c.valor)) : 0;
       const indeniz = teto ? `<div class="indeniz">✓ Até ${fmtInt(teto)} em indenizações</div>` : '';
       return `
-      <div class="plan ${idx===0?'sel':''}" data-id="${pl.id}" onclick="selectPlan(this)">
+      <div class="plan ${idx===padrao?'sel':''}" data-id="${pl.id}" onclick="selectPlan(this)">
         <div class="radio"></div>
         <div class="info">
           <div class="top"><h3>${pl.nome}${pl.destaque?' <span class="badge-best">TOP</span>':''}</h3>
@@ -626,7 +630,7 @@
         </div>
       </div>`;
     }).join('');
-    PLANO_SEL = planos[0] || null;
+    PLANO_SEL = planos[padrao] || null;
   }
 
   function selectPlan(elm){
