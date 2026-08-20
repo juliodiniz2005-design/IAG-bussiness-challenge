@@ -336,7 +336,16 @@ def index():
 def api_imoveis():
     db = SessionLocal()
     imoveis = db.query(Imovel).all()
-    return jsonify([i.to_dict() for i in imoveis])
+    return jsonify([_com_protecao(db, i) for i in imoveis])
+
+
+def _com_protecao(db, imovel):
+    """Imóvel + os planos da Prudential já precificados para o aluguel dele.
+    Vai junto na mesma resposta para a proteção aparecer sem espera."""
+    d = imovel.to_dict()
+    d["protecao"] = protecao_para(db, imovel.aluguel)
+    d["faixa_premio"] = faixa_do_aluguel(Decimal(str(imovel.aluguel or 0)))
+    return d
 
 
 @app.route("/api/imoveis/<int:imovel_id>")
@@ -345,12 +354,117 @@ def api_imovel(imovel_id):
     imovel = db.get(Imovel, imovel_id)
     if not imovel:
         abort(404)
-    return jsonify(imovel.to_dict())
+    return jsonify(_com_protecao(db, imovel))
+
+
+# --- Proteção Financeira do Inquilino (Prudential) -------------------------
+# Parâmetros do estudo atuarial do produto. O prêmio não é fixo: as
+# indenizações são múltiplos do aluguel, então a exposição da seguradora
+# cresce junto com ele. Por isso o preço é definido por faixa de aluguel, e
+# não por um percentual — parte do risco independe do aluguel e o capital
+# adicional por morte tem teto.
+
+# (teto da faixa, prêmio Essencial, prêmio Total). None = última faixa.
+FAIXAS_PREMIO = [
+    (Decimal("1500"), Decimal("11.90"), Decimal("17.90")),
+    (Decimal("2500"), Decimal("17.90"), Decimal("26.90")),
+    (Decimal("3500"), Decimal("24.90"), Decimal("37.90")),
+    (Decimal("5000"), Decimal("32.90"), Decimal("49.90")),
+    (Decimal("7000"), Decimal("42.90"), Decimal("64.90")),
+    (Decimal("10000"), Decimal("54.90"), Decimal("82.90")),
+    (None, Decimal("69.90"), Decimal("104.90")),
+]
+
+# Múltiplos do aluguel por cobertura. O capital adicional por morte tem teto;
+# a parcela de meses de aluguel é calculada à parte e não entra nesse limite.
+COBERTURAS = {
+    "Proteção Essencial": {
+        "temporaria": 3, "invalidez": 6,
+        "morte_aluguel": 6, "morte_capital": 6, "teto_capital": Decimal("20000"),
+    },
+    "Proteção Total": {
+        "temporaria": 12, "invalidez": 12,
+        "morte_aluguel": 12, "morte_capital": 12, "teto_capital": Decimal("50000"),
+    },
+}
+
+
+def premio_do_aluguel(aluguel):
+    """Prêmio mensal de cada plano para a faixa em que o aluguel cai."""
+    for teto, essencial, total in FAIXAS_PREMIO:
+        if teto is None or aluguel <= teto:
+            return {"Proteção Essencial": essencial, "Proteção Total": total}
+
+
+def faixa_do_aluguel(aluguel):
+    """Rótulo da faixa, mostrado ao cliente para justificar o preço."""
+    limites = [t for t, _, _ in FAIXAS_PREMIO if t is not None]
+    anterior = Decimal("0")
+    for teto in limites:
+        if aluguel <= teto:
+            if anterior == 0:
+                return "aluguéis até R$ %s" % _milhar(teto)
+            return "aluguéis de R$ %s a R$ %s" % (_milhar(anterior + 1), _milhar(teto))
+        anterior = teto
+    return "aluguéis acima de R$ %s" % _milhar(limites[-1])
+
+
+def _milhar(v):
+    return "{:,.0f}".format(float(v)).replace(",", ".")
+
+
+def protecao_para(db, aluguel):
+    """Planos já precificados para este aluguel, com as indenizações em reais.
+
+    O cliente vê apenas o nível de proteção e o preço; o cálculo atuarial
+    fica nos bastidores. Como o preço depende do imóvel, ele é resolvido
+    aqui no servidor e nunca aceito do cliente."""
+    aluguel = Decimal(str(aluguel or 0))
+    premios = premio_do_aluguel(aluguel)
+    planos = []
+
+    for plano in db.query(PlanoSeguro).order_by(PlanoSeguro.ordem).all():
+        item = plano.to_dict()
+        cob = COBERTURAS.get(plano.nome)
+
+        if cob is None:                      # "Seguir sem proteção"
+            item["preco"] = 0.0
+            item["coberturas"] = []
+            item["resumo"] = "Sem proteção da Prudential."
+            planos.append(item)
+            continue
+
+        capital = min(aluguel * cob["morte_capital"], cob["teto_capital"])
+        morte = aluguel * cob["morte_aluguel"] + capital
+
+        item["preco"] = float(premios[plano.nome])
+        item["resumo"] = ("Incapacidade, invalidez e morte · até %d aluguéis"
+                          % cob["invalidez"])
+        item["capital_morte"] = float(capital)
+        item["coberturas"] = [
+            {"nome": "Incapacidade temporária",
+             "curto": "%d aluguéis" % cob["temporaria"],
+             "valor": float(aluguel * cob["temporaria"])},
+            {"nome": "Invalidez permanente",
+             "curto": "%d aluguéis" % cob["invalidez"],
+             "valor": float(aluguel * cob["invalidez"])},
+            {"nome": "Morte",
+             "curto": "%d aluguéis + capital" % cob["morte_aluguel"],
+             "valor": float(morte)},
+        ]
+        planos.append(item)
+
+    return planos
 
 
 @app.route("/api/planos")
 def api_planos():
+    """Planos para um aluguel informado (?aluguel=3000). Sem o parâmetro,
+    devolve a tabela crua do banco."""
     db = SessionLocal()
+    aluguel = request.args.get("aluguel")
+    if aluguel:
+        return jsonify(protecao_para(db, aluguel))
     planos = db.query(PlanoSeguro).order_by(PlanoSeguro.ordem).all()
     return jsonify([p.to_dict() for p in planos])
 
@@ -369,7 +483,10 @@ def criar_proposta():
     if data.get("plano_id"):
         plano = db.get(PlanoSeguro, int(data["plano_id"]))
         if plano:
-            valor_seguro = Decimal(str(plano.preco))
+            # O prêmio depende da faixa de aluguel deste imóvel, não do valor
+            # gravado no plano; recalculamos aqui em vez de aceitar do cliente.
+            premios = premio_do_aluguel(Decimal(str(imovel.aluguel or 0)))
+            valor_seguro = premios.get(plano.nome, Decimal("0"))
 
     valor_aluguel = Decimal(str(imovel.total))
     valor_total = valor_aluguel + valor_seguro
